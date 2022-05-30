@@ -5,16 +5,18 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
     print('Connected by', address) # 커넥션이 되면 접속 주소가 나온다.
 
     try:
+
         while True: # 접속 상태에서는 클라이언트로 부터 받을 데이터를 무한 대기한다.
+
             data = client_socket.recv(4) # socket의 recv함수는 연결된 소켓으로부터 데이터를 받을 대기하는 함수입니다. 최초 4바이트를 대기합니다.
 
             length = int.from_bytes(data, 'little') # 최초 4바이트는 전송할 데이터의 크기이다. 그 크기는 little 엔디언으로 byte에서 int형식으로 변환한다.
 
             data = client_socket.recv(length) # 다시 데이터를 수신한다.
             
+            print(data)
+
             msg = data.decode() # 수신된 데이터를 str형식으로 decode한다.
-            
-            print('Received from', msg) # 수신된 메시지를 콘솔에 출력한다.
             
             msg = 'echo : ' + msg # 수신된 메시지 앞에 「echo:」 라는 메시지를 붙힌다.
             
