@@ -1,6 +1,27 @@
-import socket, threading, pickle
+import socket
+from os.path import exists, getsize
+import threading
+import pickle
 
-files = []
+files = {}
+
+def getFileSize(directory):
+
+    fileSize = getsize(directory)
+
+    return str(fileSize)
+
+def getFileData(directory):
+
+    with open(directory, 'r', encoding="UTF-8") as f:
+
+        data = ''
+
+        for i in f:
+
+            data += i
+
+    return data
 
 def binder(client_socket, address): # binder함수는 서버에서 accept가 되면 생성되는 socket 인스턴스를 통해 client로 부터 데이터를 받으면 echo형태로 재송신하는 메소드이다.
 
@@ -18,13 +39,41 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
 
             msg = data.decode() # 수신된 데이터를 str형식으로 decode한다.
 
-            print(msg)
-
             if msg.strip() == '/파일목록':
 
                 ret = pickle.dumps(files)
 
                 client_socket.sendall(ret)
+
+            if msg.split()[0] == '/업로드':
+
+                directory = client_socket.recv(1024)
+
+                directory = directory.decode()
+
+                filename = client_socket.recv(1024)
+
+                filename = filename.decode()
+
+                if not exists(directory):
+
+                    ret = 'FileNotFoundError'
+
+                    client_socket.sendall(ret.encode())
+
+                    continue
+
+                reSize = getFileSize(directory)
+
+                files[filename] = round(int(reSize) / 1024)
+
+                client_socket.sendall(reSize.encode())
+
+                status = client_socket.recv(1024)
+
+                if status.decode() == 'Ready':
+
+                    client_socket.sendall(getFileData(directory).encode())
 
             else:
             
@@ -48,7 +97,7 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 �
 
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # 소켓 레벨과 데이터 형태를 설정한다.
 
-server_socket.bind(('192.168.224.222', 8000))
+server_socket.bind(('localhost', 8000))
 
 server_socket.listen() # server 설정이 완료되면 listen를 시작한다.
 
