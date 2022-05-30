@@ -1,4 +1,6 @@
-import socket, threading
+import socket, threading, pickle
+
+files = []
 
 def binder(client_socket, address): # binder함수는 서버에서 accept가 되면 생성되는 socket 인스턴스를 통해 client로 부터 데이터를 받으면 echo형태로 재송신하는 메소드이다.
 
@@ -13,20 +15,26 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
             length = int.from_bytes(data, 'little') # 최초 4바이트는 전송할 데이터의 크기이다. 그 크기는 little 엔디언으로 byte에서 int형식으로 변환한다.
 
             data = client_socket.recv(length) # 다시 데이터를 수신한다.
-            
-            print(data)
 
             msg = data.decode() # 수신된 데이터를 str형식으로 decode한다.
+
+            print(msg)
+
+            if msg.strip() == '/파일목록':
+
+                ret = pickle.dumps(files)
+
+                client_socket.sendall(ret)
+
+            else:
             
-            msg = 'echo : ' + msg # 수신된 메시지 앞에 「echo:」 라는 메시지를 붙힌다.
-            
-            data = msg.encode() # 바이너리(byte)형식으로 변환한다.
-            
-            length = len(data) # 바이너리의 데이터 사이즈를 구한다.
-            
-            client_socket.sendall(length.to_bytes(4, byteorder = 'little')) # 데이터 사이즈를 little 엔디언 형식으로 byte로 변환한 다음 전송한다.
-            
-            client_socket.sendall(data) # 데이터를 클라이언트로 전송한다.
+                data = msg.encode() # 바이너리(byte)형식으로 변환한다.
+                
+                length = len(data) # 바이너리의 데이터 사이즈를 구한다.
+                
+                client_socket.sendall(length.to_bytes(4, byteorder = 'little')) # 데이터 사이즈를 little 엔디언 형식으로 byte로 변환한 다음 전송한다.
+                
+                client_socket.sendall(data) # 데이터를 클라이언트로 전송한다.
 
     except: # 접속이 끊기면 except가 발생한다.
 
@@ -40,7 +48,7 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 �
 
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # 소켓 레벨과 데이터 형태를 설정한다.
 
-server_socket.bind(('10.80.162.18', 8000))
+server_socket.bind(('192.168.224.222', 8000))
 
 server_socket.listen() # server 설정이 완료되면 listen를 시작한다.
 
