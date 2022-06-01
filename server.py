@@ -1,7 +1,9 @@
 import socket
-from os.path import exists, getsize
+import os
 import threading
 import pickle
+import math
+from os.path import exists, getsize
 
 files = {}
 
@@ -23,6 +25,18 @@ def getFileData(directory):
 
     return data
 
+def recieveData(): # 클라이언트로부터 데이터를 받는 함수
+
+    data = client_socket.recv(4) # 메세지 길이를 받아온다.
+
+    length = int.from_bytes(data, 'little') # 리틀 엔디언 형식에서 int 형식으로 변환한다.
+
+    data = client_socket.recv(length) # 데이터를 받아온다.
+    
+    msg = data.decode() # 수신된 데이터를 str형식으로 decode한다.
+
+    return msg # 받은 데이터를 반환(전달)한다.
+
 def binder(client_socket, address): # binder함수는 서버에서 accept가 되면 생성되는 socket 인스턴스를 통해 client로 부터 데이터를 받으면 echo형태로 재송신하는 메소드이다.
 
     print('Connected by', address) # 커넥션이 되면 접속 주소가 나온다.
@@ -31,49 +45,98 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
 
         while True: # 접속 상태에서는 클라이언트로 부터 받을 데이터를 무한 대기한다.
 
-            data = client_socket.recv(4) # socket의 recv함수는 연결된 소켓으로부터 데이터를 받을 대기하는 함수입니다. 최초 4바이트를 대기합니다.
+            msg = recieveData() # 메세지를 클라이언트로부터 받아온다.
 
-            length = int.from_bytes(data, 'little') # 최초 4바이트는 전송할 데이터의 크기이다. 그 크기는 little 엔디언으로 byte에서 int형식으로 변환한다.
+            if msg.strip() == '/파일목록': # 파일 목록 명령을 받았을 때
 
-            data = client_socket.recv(length) # 다시 데이터를 수신한다.
-
-            msg = data.decode() # 수신된 데이터를 str형식으로 decode한다.
-
-            if msg.strip() == '/파일목록':
-
-                ret = pickle.dumps(files)
-
-                client_socket.sendall(ret)
+                client_socket.sendall(pickle.dumps(files)) # 파일 리스트 보냄
 
             if msg.split()[0] == '/업로드':
 
-                directory = client_socket.recv(1024)
+                client_socket.sendall(pickle.dumps(files)) # 파일 리스트 보냄 ( 중복 확인을 위해 ) #1
 
-                directory = directory.decode()
+                directory = recieveData() # 파일 경로 받기
 
-                filename = client_socket.recv(1024)
+                filename = recieveData() # 파일 이름 받기
 
-                filename = filename.decode()
+                extension = recieveData() # 파일 확장자명 받기
 
-                if not exists(directory):
+                if not exists(directory): # 파일 경로가 존재하지 않는다면
 
-                    ret = 'FileNotFoundError'
+                    client_socket.sendall(b'-1') # 반환값은 -1
 
-                    client_socket.sendall(ret.encode())
+                    continue # 처음으로 돌아감.
 
-                    continue
+                reSize = getFileSize(directory) # 파일 크기 얻음
 
-                reSize = getFileSize(directory)
+                files[filename] = round(int(reSize) / 1024) # 파일 목록 ( dict ) 에 { 파일명 : 파일 크기 } 형태로 저장
 
-                files[filename] = round(int(reSize) / 1024)
+                client_socket.sendall(reSize.encode()) # 파일 크기를 클라이언트로 전송
 
-                client_socket.sendall(reSize.encode())
+                # 파일 전송 부분 ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
 
-                status = client_socket.recv(1024)
+                file = open('C:\\Users\\DGSW\\Desktop\\Server\\' + filename, 'wb')
 
-                if status.decode() == 'Ready':
+                while True:
+
+                    image_chunk = client_socket.recv(1024)
+
+                    if image_chunk[-5:] == b'break':
+
+                        file.write(image_chunk[:-5])
+
+                        print('Done Recieving.')
+
+                        break
+                    
+                    file.write(image_chunk)
+
+                file.close()
+
+
+
+            if msg.split()[0] == '/다운로드':
+
+                filename = recieveData() # 클라이언트로부터 파일명 수신
+
+                extension = recieveData() # 클라이언트로부터 확장자명 수신
+
+                directory = 'C:\\Users\\DGSW\\Desktop\\Server\\' + filename # 파일 경로
+
+                if not exists(directory): # 해당 파일이 서버에 존재하지 않을 경우
+
+                    client_socket.sendall(b'-1') # -1 송신
+
+                    continue # 처음으로 돌아감.
+
+                reSize = getFileSize(directory) # 파일 크기를 얻어옴
+
+                client_socket.sendall(reSize.encode()) # 파일 크기를 클라이언트로 전송
+
+                if extension == 'txt':
 
                     client_socket.sendall(getFileData(directory).encode())
+                
+                else:                    
+
+                    file = open('D:\\download\\' + filename, 'wb')
+
+                    while True:
+
+                        image_chunk = client_socket.recv(1024)
+
+                        if image_chunk[-5:] == b'break':
+
+                            file.write(image_chunk[:-5])
+
+                            print('Done Recieving.')
+
+                            break
+                        
+                        file.write(image_chunk)
+
+                    file.close()
+
 
             else:
             
@@ -85,9 +148,10 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
                 
                 client_socket.sendall(data) # 데이터를 클라이언트로 전송한다.
 
-    except: # 접속이 끊기면 except가 발생한다.
-
-        print('except : ' + address)
+    except Exception as e: # 접속이 끊기면 except가 발생한다.
+        
+        print(e)
+        print('except : ' + str(address[0]))
 
     finally: # 접속이 끊기면 socket 리소스를 닫는다.
 

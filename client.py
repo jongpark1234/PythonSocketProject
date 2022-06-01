@@ -6,17 +6,25 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 �
 
 client_socket.connect((HOST, PORT)) # connect 함수로 접속을 한다.
 
-def LoadFileList():
+def LoadFileList(): # 파일 목록을 불러오는 함수 ( pickle 이용 )
 
-    data = client_socket.recv(1024)
+    data = client_socket.recv(1024) # 데이터를 가져옴
 
-    if not data:
+    if not data: # 데이터가 비었다면
 
-        return data
+        return data # 피클 작업 해 줄 필요 없이 그냥 보냄
 
-    ret = pickle.loads(data)
+    return pickle.loads(data) # 데이터가 들어있다면 pickle를 통해서 직렬화.
 
-    return ret
+def sendData(data): # 서버에 정보를 보내는 함수
+
+    ret = data.encode() # 메시지를 바이너리(byte)형식으로 변환한다.
+
+    length = len(ret) # 메세지 길이를 받는다.
+
+    client_socket.sendall(length.to_bytes(4, byteorder='little')) # 메세지 길이를 리틀 엔디언 형식으로 서버에 보낸다.
+
+    client_socket.send(ret) # 메세지를 전송한다.
 
 try:
 
@@ -36,13 +44,7 @@ try:
 
             break # 접속을 종료한다.
     
-        data = msg.encode() # 메시지를 바이너리(byte)형식으로 변환한다.
-
-        length = len(data) # 메시지 길이를 구한다.
-        
-        client_socket.sendall(length.to_bytes(4, byteorder = 'little')) # server로 리틀 엔디언 형식으로 데이터 길이를 전송한다.
-        
-        client_socket.sendall(data) # 데이터를 전송한다.
+        sendData(msg)
 
         if msg == '/파일목록': # 파일목록 명령어를 전달받을 경우
 
@@ -55,6 +57,7 @@ try:
                 print('**', i + f'\t{data[i]}Kb **') # 파일 이름을 출력한다.
             
             print(f'** {len(list(data.keys()))}개 파일 **') # 파일 개수를 출력한다.
+
         
         if msg.split()[0] == '/업로드': # 업로드 명령어를 전달받을 경우
 
@@ -68,35 +71,102 @@ try:
 
                 filename = msg.split()[1].split('\\')[-1] # 경로의 가장 마지막 부분이 파일 이름
 
-            client_socket.sendall(directory.encode()) # 서버에 파일 경로를 보냄.
+            extension = filename.split('.')[1] # 파일 확장자명 저장 ( svg, jpg, png, txt .... )
 
-            client_socket.sendall(filename.encode()) # 서버에 파일 이름을 보냄.
+            if filename in LoadFileList().keys(): # 만약 중복된 이름이 있다면 #1
 
-            reSize = client_socket.recv(1024) # 파일의 크기를 받음
+                if input('파일이 이미 있습니다. 덮어쓰기 하실건가요??(Yes: 덮어쓰기 / No: 업로드 취소): ').lower() != 'yes': # 덮어씌울지 물어본 뒤
+
+                    print('** 업로드가 취소되었습니다. **') # yes가 아닌 모든 답변은 덮어쓰지 않는(no)다고 생각함.
+
+                    continue # 처음으로 돌아감.
+            
+            sendData(directory) # 서버로 경로 전송
+
+            sendData(filename) # 서버로 파일명 전송
+
+            sendData(extension) # 서버로 확장자명 전송
+
+            reSize = client_socket.recv(2048) # 파일 크기 수신
 
             reSize = reSize.decode() # 파일 크기 디코딩
-
-            if reSize == 'FileNotFoundError': # 만약 해당 경로의 파일을 찾을 수 없다고 반환되었으면
+            
+            if reSize == '-1': # 만약 해당 경로의 파일을 찾을 수 없다고 반환되었으면
 
                 print('** 파일을 찾을 수 없습니다. **') # 파일을 찾을 수 없다고 출력
 
-                continue # 해당 명령 종료
+                continue # 처음으로 돌아감.
 
-            status = 'Ready' # 상태 : 준비됨
+            # 파일 전송 부분 ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
 
-            client_socket.sendall(status.encode()) # 서버에 해당 상태를 보냄.
+            file = open(directory, 'rb')
 
-            with open('C:\\Users\\DGSW\\Desktop\\Server\\' + filename, 'w', encoding='UTF-8') as f:
+            image_data = file.read(1024)
 
-                data = client_socket.recv(int(reSize)) # 파일 크기만큼 파일을 받음.
+            while image_data:
 
-                f.write(data.decode()) # 파일 쓰기
+                client_socket.send(image_data)
+
+                image_data = file.read(1024)
             
-            print(f'** {filename} 파일을 업로드하였습니다. **')
+            print('close')
 
+            file.close()
+
+            client_socket.send(b'break')
+
+            print(f'** {filename} 파일을 업로드하였습니다. **')
+                
+
+        if msg.split()[0] == '/다운로드': # 다운로드 명령어를 전달받을 경우
+
+            filename = msg.split()[1] # 마지막 인덱스는 다운받을 파일명 
+
+            extension = filename.split('.')[1] # 파일 확장자명 저장 ( svg, jpg, png, txt .... )
+
+            sendData(filename) # 서버로 파일명 전송
+
+            sendData(extension) # 서버로 확장자명 전송
+
+            reSize = client_socket.recv(1024) # 파일 크기 수신 #3
+
+            reSize = reSize.decode() # 파일 크기 디코딩
+
+            if reSize == '-1': # 만약 해당 경로의 파일을 찾을 수 없다고 반환되었으면
+
+                print('** 파일을 찾을 수 없습니다. **') # 파일을 찾을 수 없다고 출력
+
+                continue # 처음으로 돌아감.
+
+            if extension == 'txt':
+
+                with open('D:\\download\\' + filename, 'w', encoding='UTF-8') as f: # 서버 경로로 파일을 연다.
+
+                    data = client_socket.recv(int(reSize)) # 파일 크기만큼 파일을 받음.
+
+                    f.write(data.decode()) # 파일 쓰기
+            
+            else:
+
+                file = open('C:\\Users\\DGSW\\Desktop\\Server\\' + filename, 'rb')
+
+                image_data = file.read(1024)
+
+                while image_data:
+
+                    client_socket.send(image_data)
+
+                    image_data = file.read(1024)
+                
+                print('close')
+
+                file.close()
+
+                client_socket.send(b'break')
+
+            print(f'** {filename}을 D:/download/로 다운로드 하였습니다. **')
 
         else:
-
 
             data = client_socket.recv(4) # server로 부터 전송받을 데이터 길이를 받는다.
             
