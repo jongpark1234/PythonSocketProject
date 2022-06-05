@@ -1,8 +1,10 @@
 import socket
+from os import remove
 from os.path import exists, getsize
 HOST, PORT = 'localhost', 8000
 
-serverpath = 'C:\\Users\\DGSW\\Desktop\\Server\\'
+serverpath = 'C:\\Users\\DGSW\\Desktop\\Server\\' # 서버 파일의 경로
+downloadpath = 'D:\\download\\' # 다운로드 파일의 경로
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 만든다.
 
@@ -63,6 +65,32 @@ def sendFile(dir): # 파일을 보내는 함수
         client_socket.send(b'error') # 에러 메세지를 보냄
 
         assert(KeyboardInterrupt) # 클라이언트를 끊음
+
+def recieveFile(dir): # 파일을 받는 함수
+
+    file = open(dir, 'wb') # 서버로 경로를 엶.
+
+    while True: # 무한 반복
+
+        image_chunk = client_socket.recv(1024) # 데이터를 받아옴.
+
+        if image_chunk[-5:] == b'break': # 데이터를 다 받았다는 신호를 받으면
+
+            file.write(image_chunk[:-5]) # 남은 데이터를 보내준 뒤
+
+            break # 파일 읽기를 끝냄.
+        
+        if image_chunk[-5:] == b'error': # 에러가 발생했다는 신호를 받으면
+
+            file.close() # 파일을 닫음
+
+            remove(dir) # 해당 파일을 삭제함.
+
+            return # 파일 읽기를 끝냄.
+
+        file.write(image_chunk) # 데이터를 파일로 보내줌.
+
+    file.close() # 파일을 닫음.
 
 try:
 
@@ -151,13 +179,13 @@ try:
 
             sendData(filename) # 서버로 파일명 전송
 
-            if recieveData() == '-1': # 만약 해당 경로의 파일을 찾을 수 없다고 반환되었으면
+            if recieveData() == 'False': # 만약 해당 경로의 파일을 찾을 수 없다고 반환되었으면
 
                 print('** 파일을 찾을 수 없습니다. **') # 파일을 찾을 수 없다고 출력
 
                 continue # 처음으로 돌아감.
 
-            sendFile(serverpath + filename) # 파일을 서버에 전송함
+            recieveFile(downloadpath + filename) # 파일을 서버에 전송함
 
             print(f'** {filename}을 D:/download/로 다운로드 하였습니다. **') # 파일 다운로드 성공 메세지 출력
 

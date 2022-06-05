@@ -36,6 +36,32 @@ def recieveData(): # 정보를 받는 함수
 
     return msg # 받은 데이터를 반환(전달)한다.
 
+def sendFile(dir): # 파일을 보내는 함수
+
+    try:
+
+        file = open(dir, 'rb') # 전송할 파일을 엶
+
+        image_data = file.read(1024) # 파일을 읽음
+
+        while image_data: # 파일 읽기가 끝날 때까지
+
+            client_socket.send(image_data) # 현재까지 읽은 데이터를 서버에 전송함.
+
+            image_data = file.read(1024) # 파일을 다시 읽음
+        
+        file.close() # 전송이 끝난 파일을 닫음
+
+        client_socket.send(b'break') # 파일 전송을 완료 하였다고 신호를 보냄.
+
+    except: # 어떤 문제가 발생했을 시
+
+        file.close() # 전송중이던 파일을 닫음
+
+        client_socket.send(b'error') # 에러 메세지를 보냄
+
+        assert(KeyboardInterrupt) # 클라이언트를 끊음
+
 def recieveFile(dir): # 파일을 받는 함수
 
     file = open(dir, 'wb') # 서버로 경로를 엶.
@@ -114,9 +140,17 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
 
                 directory = serverpath + filename # 파일 경로
 
-                sendData(getFileSize(directory)) # 파일 크기를 전송함
+                exist = exists(directory) # 파일 존재 여부를 저장
 
-                recieveFile(downloadpath + filename) # 파일을 받음
+                if not exist: # 파일이 존재하지 않는다면
+
+                    sendData('False') # 존재하지 않는다는 신호를 보냄.
+
+                    continue # 처음으로 돌아감.
+                
+                sendData('True')
+
+                sendFile(serverpath + filename) # 파일을 받음
 
             else:
             
