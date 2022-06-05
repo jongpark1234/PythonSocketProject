@@ -1,5 +1,5 @@
 import socket
-from os import listdir
+from os.path import exists, getsize
 HOST, PORT = 'localhost', 8000
 
 serverpath = 'C:\\Users\\DGSW\\Desktop\\Server\\'
@@ -7,6 +7,14 @@ serverpath = 'C:\\Users\\DGSW\\Desktop\\Server\\'
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 만든다.
 
 client_socket.connect((HOST, PORT)) # connect 함수로 접속을 한다.
+
+def getFileSize(directory): # 파일 크기를 불러오는 함수
+
+    if not exists(directory): # 파일 경로가 존재하지 않는다면
+
+        return '-1' # -1을 반환해줌.
+
+    return str(getsize(directory)) # 파일이 존재하면 파일의 크기를 반환해줌.
 
 def sendData(data): # 정보를 보내는 함수
 
@@ -64,13 +72,11 @@ try:
 
         sendData('/로그인')
 
-        sendData(input('ID: ')) # ID를 입력받음.
+        sendData(input('ID: ') + ' ' + input('PASS: ')) # ID와 PASS를 입력받고 서버 공백을 기준으로 구분하여 서버에 보냄.
 
-        sendData(input('PASS: ')) # PASS를 입력받음.
-
-        if recieveData() == 'break':
+        if recieveData() == 'True': # 수신받은 메세지가 올바르다는 뜻의 True 라면
             
-            break
+            break # 로그인 과정을 끝냄
 
         print('** ID 또는 PASS가 틀렸습니다.! **') # 둘 중 하나 이상이 틀리면 메세지 출력 후 입력 반복
 
@@ -109,25 +115,31 @@ try:
             else: # 아니라면 ( 경로만 입력한 상태라면 )
 
                 filename = msg.split()[1].split('\\')[-1] # 경로의 가장 마지막 부분이 파일 이름
-
-            if filename in listdir(serverpath): # 만약 중복된 이름이 있다면
-
-                if input('파일이 이미 있습니다. 덮어쓰기 하실건가요??(Yes: 덮어쓰기 / No: 업로드 취소): ').lower() != 'yes': # 덮어씌울지 물어봄.
-
-                    print('** 업로드가 취소되었습니다. **') # yes가 아닌 모든 답변은 덮어쓰지 않는(no)다고 생각함.
-
-                    continue # 처음으로 돌아감.
             
-            sendData(directory) # 서버로 경로 전송
-
-            sendData(filename) # 서버로 파일명 전송
-
-            if recieveData() == '-1': # 만약 해당 경로의 파일을 찾을 수 없다고 반환되었으면
+            if not exists(directory): # 만약 해당 경로의 파일을 찾을 수 없다고 반환되었으면
 
                 print('** 파일을 찾을 수 없습니다. **') # 파일을 찾을 수 없다고 출력
 
                 continue # 처음으로 돌아감.
+            
+            sendData(filename) # 서버에 파일명을 보냄
 
+            if recieveData() == 'True': # 만약 중복된 이름이 있다면
+
+                weather = input('파일이 이미 있습니다. 덮어쓰기 하실건가요??(Yes: 덮어쓰기 / No: 업로드 취소): ').lower() # 덮어씌울지 물어봄.
+
+                if weather != 'yes': # 덮어씌우지 않는다고 했다면 ( yes가 아닌 모든 답변은 덮어쓰지 않는(no)다고 생각함. )
+
+                    print('** 업로드가 취소되었습니다. **') # 취소했다고 메세지 출력
+
+                    sendData('False') # 서버에 덮어씌우지 않는다고 선언
+
+                    continue # 처음으로 돌아감.
+
+                else: # 덮어씌운다고 했다면
+
+                    sendData('True') # 서버에 덮어씌운다고 선언
+            
             sendFile(directory) # 파일을 서버에 전송함
 
             print(f'** {filename} 파일을 업로드하였습니다. **') # 파일 업로드 성공 메세지 출력
@@ -153,9 +165,9 @@ try:
 
             pass
             
-except: # 접속이 끊어진다면
+except Exception as e: # 접속이 끊어진다면
 
-    print('접속이 끊어졌습니다.') # 끊어졌다고 알려줌
+    print('접속이 끊어졌습니다.', e) # 끊어졌다고 알려줌
 
 finally: # 프로그램이 끝날 때
 

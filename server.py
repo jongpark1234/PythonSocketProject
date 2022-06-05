@@ -78,17 +78,15 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
 
             if msg.strip() == '/로그인': # 로그인 명령을 받았을 때
 
-                ID = recieveData()
+                AUTHOR = recieveData() # 클라이언트에서 입력한 계정 정보를 받음
 
-                PASS = recieveData()
+                if AUTHOR == 'admin 1234': # ID가 admin, PASS가 1234 라면
 
-                if [ID, PASS] == ['admin', '1234']:
-
-                    sendData('break')
+                    sendData('True') # 계정 정보가 올바르다는 메세지를 보냄
                 
-                else:
+                else: # 아니라면
 
-                    sendData('retry')
+                    sendData('False') # 계정 정보가 올바르지 않다는 메세지를 보냄
 
             elif msg.strip() == '/파일목록': # 파일 목록 명령을 받았을 때
 
@@ -96,11 +94,17 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
 
             elif msg.split()[0] == '/업로드': # 업로드 명령을 받았을 때
 
-                directory = recieveData() # 파일 경로 받기
-
                 filename = recieveData() # 파일 이름 받기
+                
+                overlap = str(filename in listdir(serverpath))
 
-                sendData(getFileSize(directory)) # 파일 크기를 전송함
+                sendData(overlap) # 클라이언트에 파일명 중복 여부를 보냄
+
+                if overlap == 'True':
+
+                    if recieveData() == 'False': # 덮어씌우지 않는다고 받으면
+                        
+                        continue # 처음으로 돌아감.
 
                 recieveFile(serverpath + filename) # 파일을 받음
 
