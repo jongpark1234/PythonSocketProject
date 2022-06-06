@@ -4,7 +4,6 @@ from os import listdir, remove
 from os.path import exists, getsize
 
 serverpath = 'C:\\Users\\DGSW\\Desktop\\Server\\' # 서버 파일의 경로
-downloadpath = 'D:\\download\\' # 다운로드 파일의 경로
 
 def getFileSize(directory): # 파일 크기를 불러오는 함수
 
@@ -38,17 +37,21 @@ def recieveData(): # 정보를 받는 함수
 
 def sendFile(dir): # 파일을 보내는 함수
 
+    size = 10485760 if getsize(dir) > 1073741824 else 1024 # 송수신 파일이 1GB를 초과하면 매 번 10MB씩 데이터를 보내고, 아닌 파일은 1KB씩 데이터를 보냄.
+
+    client_socket.sendall(size.to_bytes(4, byteorder='little')) # 크기를 리틀 엔디언 형식으로 서버에 보낸다.
+
     try:
 
         file = open(dir, 'rb') # 전송할 파일을 엶
 
-        image_data = file.read(1024) # 파일을 읽음
+        image_data = file.read(size) # 파일을 읽음
 
         while image_data: # 파일 읽기가 끝날 때까지
 
             client_socket.send(image_data) # 현재까지 읽은 데이터를 서버에 전송함.
 
-            image_data = file.read(1024) # 파일을 다시 읽음
+            image_data = file.read(size) # 파일을 다시 읽음
         
         file.close() # 전송이 끝난 파일을 닫음
 
@@ -63,12 +66,16 @@ def sendFile(dir): # 파일을 보내는 함수
         assert(KeyboardInterrupt) # 클라이언트를 끊음
 
 def recieveFile(dir): # 파일을 받는 함수
+    
+    data = client_socket.recv(4) # 크기를 받아온다.
+
+    size = int.from_bytes(data, 'little') # 리틀 엔디언 형식에서 int 형식으로 변환한다.
 
     file = open(dir, 'wb') # 서버로 경로를 엶.
 
     while True: # 무한 반복
 
-        image_chunk = client_socket.recv(1024) # 데이터를 받아옴.
+        image_chunk = client_socket.recv(size) # 데이터를 받아옴.
 
         if image_chunk[-5:] == b'break': # 데이터를 다 받았다는 신호를 받으면
 
