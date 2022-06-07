@@ -1,7 +1,8 @@
 import socket
 from os import remove
 from os.path import exists, getsize
-HOST, PORT = 'localhost', 8000
+
+HOST, PORT = 'localhost', 8000 # 호스트 아이피와 포트
 
 downloadpath = 'D:\\download\\' # 다운로드 파일의 경로
 
@@ -9,21 +10,13 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 �
 
 client_socket.connect((HOST, PORT)) # connect 함수로 접속을 한다.
 
-def getFileSize(directory): # 파일 크기를 불러오는 함수
-
-    if not exists(directory): # 파일 경로가 존재하지 않는다면
-
-        return '-1' # -1을 반환해줌.
-
-    return str(getsize(directory)) # 파일이 존재하면 파일의 크기를 반환해줌.
-
 def sendData(data): # 정보를 보내는 함수
 
     ret = data.encode() # 메시지를 바이너리(byte)형식으로 변환한다.
 
     length = len(ret) # 메세지 길이를 받는다.
 
-    client_socket.sendall(length.to_bytes(4, byteorder='little')) # 메세지 길이를 리틀 엔디언 형식으로 서버에 보낸다.
+    client_socket.sendall(length.to_bytes(4, byteorder='little')) # 메세지 길이를 리틀 엔디언 형식으로 보낸다.
 
     client_socket.sendall(ret) # 메세지를 전송한다.
 
@@ -43,7 +36,7 @@ def sendFile(dir): # 파일을 보내는 함수
 
     size = 10485760 if getsize(dir) > 1073741824 else 1024 # 송수신 파일이 1GB를 초과하면 매 번 10MB씩 데이터를 보내고, 아닌 파일은 1KB씩 데이터를 보냄.
 
-    client_socket.sendall(size.to_bytes(4, byteorder='little')) # 크기를 리틀 엔디언 형식으로 서버에 보낸다.
+    client_socket.sendall(size.to_bytes(4, byteorder='little')) # 크기를 리틀 엔디언 형식으로 보낸다.
 
     try:
 
@@ -178,7 +171,6 @@ try:
             sendFile(directory) # 파일을 서버에 전송함
 
             print(f'** {filename} 파일을 업로드하였습니다. **') # 파일 업로드 성공 메세지 출력
-                
 
         elif msg.split()[0] == '/다운로드': # 다운로드 명령어를 전달받을 경우
 
@@ -202,7 +194,7 @@ try:
             
 except Exception as e: # 접속이 끊어진다면
 
-    print('접속이 끊어졌습니다.', e) # 끊어졌다고 알려줌
+    print('접속이 끊어졌습니다.') # 끊어졌다고 알려줌
 
 finally: # 프로그램이 끝날 때
 

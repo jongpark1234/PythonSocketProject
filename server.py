@@ -5,21 +5,13 @@ from os.path import exists, getsize
 
 serverpath = 'C:\\Users\\DGSW\\Desktop\\Server\\' # 서버 파일의 경로
 
-def getFileSize(directory): # 파일 크기를 불러오는 함수
-
-    if not exists(directory): # 파일 경로가 존재하지 않는다면
-
-        return '-1' # -1을 반환해줌.
-
-    return str(getsize(directory)) # 파일이 존재하면 파일의 크기를 반환해줌.
-
 def sendData(data): # 정보를 보내는 함수
 
     ret = data.encode() # 메시지를 바이너리(byte)형식으로 변환한다.
 
     length = len(ret) # 메세지 길이를 받는다.
 
-    client_socket.sendall(length.to_bytes(4, byteorder='little')) # 메세지 길이를 리틀 엔디언 형식으로 서버에 보낸다.
+    client_socket.sendall(length.to_bytes(4, byteorder='little')) # 메세지 길이를 리틀 엔디언 형식으로 보낸다.
 
     client_socket.send(ret) # 메세지를 전송한다.
 
@@ -39,7 +31,7 @@ def sendFile(dir): # 파일을 보내는 함수
 
     size = 10485760 if getsize(dir) > 1073741824 else 1024 # 송수신 파일이 1GB를 초과하면 매 번 10MB씩 데이터를 보내고, 아닌 파일은 1KB씩 데이터를 보냄.
 
-    client_socket.sendall(size.to_bytes(4, byteorder='little')) # 크기를 리틀 엔디언 형식으로 서버에 보낸다.
+    client_socket.sendall(size.to_bytes(4, byteorder='little')) # 크기를 리틀 엔디언 형식으로 보낸다.
 
     try:
 
@@ -141,7 +133,7 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
 
                 recieveFile(serverpath + filename) # 파일을 받음
 
-            elif msg.split()[0] == '/다운로드':
+            elif msg.split()[0] == '/다운로드': # 다운로드 명령을 받았을 때
 
                 filename = recieveData() # 클라이언트로부터 파일명 수신
 
@@ -165,17 +157,17 @@ def binder(client_socket, address): # binder함수는 서버에서 accept가 되
 
     except: # 접속이 끊기면 except가 발생한다.
         
-        print(f'{str(address[0])} 연결 끊김')
+        print(f'{str(address[0])} 연결 끊김') # 연결이 끊긴 쪽의 주소를 출력하며 연결이 끊겼다고 알린다.
 
-    finally: # 접속이 끊기면 socket 리소스를 닫는다.
+    finally: # 서버 실행이 끝나면
 
-        client_socket.close()
+        client_socket.close() # socket 리소스를 닫는다.
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 만든다.
 
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # 소켓 레벨과 데이터 형태를 설정한다.
 
-server_socket.bind(('localhost', 8000))
+server_socket.bind(('localhost', 8000)) # 서버를 연다.
 
 server_socket.listen() # server 설정이 완료되면 listen를 시작한다.
 
@@ -187,11 +179,11 @@ try:
 
         Thread = threading.Thread(target = binder, args = (client_socket, addr)) # Thread를 이용해서 client 접속 대기를 만들고 다시 accept로 넘어가서 다른 client를 대기한다.
 
-        Thread.start()
+        Thread.start() # Thread를 동작시킨다.
 
-except:
+except: # 예외가 발생한다면
 
-    print('server close')
+    print('server close') # 서버 소켓을 닫는다는 메세지를 출력한다.
 
 finally: # 에러가 발생하면 서버 소켓을 닫는다.
 
