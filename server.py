@@ -167,9 +167,9 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 �
 
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # 소켓 레벨과 데이터 형태를 설정한다.
 
-server_socket.bind(('localhost', 8000)) # 서버를 연다.
+server_socket.bind(('192.168.35.99', 8000)) # 서버를 연다.
 
-server_socket.listen() # server 설정이 완료되면 listen를 시작한다.
+server_socket.listen(5) # server 설정이 완료되면 listen를 시작한다.
 
 try:
 

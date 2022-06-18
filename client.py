@@ -1,10 +1,10 @@
 import socket
-from os import remove
+from os import mkdir, remove
 from os.path import exists, getsize
 
-HOST, PORT = 'localhost', 8000 # 호스트 아이피와 포트
+HOST, PORT = '192.168.35.99', 8000 # 호스트 아이피와 포트
 
-downloadpath = 'D:\\download\\' # 다운로드 파일의 경로
+downloadpath = 'C:\\socketdownload\\' # 다운로드 파일의 경로
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 만든다.
 
@@ -173,6 +173,10 @@ try:
             print(f'** {filename} 파일을 업로드하였습니다. **') # 파일 업로드 성공 메세지 출력
 
         elif msg.split()[0] == '/다운로드': # 다운로드 명령어를 전달받을 경우
+
+            if not exists(downloadpath): # 아직 다운로드를 받은 적이 없다면
+                
+                mkdir(downloadpath) # 다운로드 파일을 받을 경로 생성
 
             filename = msg.split()[1] # 마지막 인덱스는 다운받을 파일명 
 
