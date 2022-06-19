@@ -2,7 +2,7 @@ import socket
 from os import mkdir, remove
 from os.path import exists, getsize
 
-HOST, PORT = '192.168.35.99', 8000 # 호스트 아이피와 포트
+HOST, PORT = 'localhost', 8000 # 호스트 아이피와 포트
 
 downloadpath = 'C:\\socketdownload\\' # 다운로드 파일의 경로
 
@@ -190,7 +190,7 @@ try:
 
             recieveFile(downloadpath + filename) # 파일을 서버에 전송함
 
-            print(f'** {filename}을 D:/download/로 다운로드 하였습니다. **') # 파일 다운로드 성공 메세지 출력
+            print(f'** {filename}을 {downloadpath}로 다운로드 하였습니다. **') # 파일 다운로드 성공 메세지 출력
 
         else:
 
@@ -198,7 +198,7 @@ try:
             
 except Exception as e: # 접속이 끊어진다면
 
-    print('접속이 끊어졌습니다.') # 끊어졌다고 알려줌
+    print(e) # 끊어졌다고 알려줌
 
 finally: # 프로그램이 끝날 때
 

@@ -167,7 +167,7 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # 소켓을 �
 
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # 소켓 레벨과 데이터 형태를 설정한다.
 
-server_socket.bind(('192.168.35.99', 8000)) # 서버를 연다.
+server_socket.bind(('localhost', 8000)) # 서버를 연다.
 
 server_socket.listen(5) # server 설정이 완료되면 listen를 시작한다.
 
@@ -185,6 +185,6 @@ except: # 예외가 발생한다면
 
     print('server close') # 서버 소켓을 닫는다는 메세지를 출력한다.
 
-finally: # 에러가 발생하면 서버 소켓을 닫는다.
+finally: # 프로그램이 종료되면
 
-    server_socket.close()
+    server_socket.close() # 서버 소켓을 닫는다.
