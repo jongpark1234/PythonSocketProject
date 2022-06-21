@@ -198,7 +198,7 @@ try:
             
 except Exception as e: # 접속이 끊어진다면
 
-    print(e) # 끊어졌다고 알려줌
+    print('연결이 끊어졌습니다. 오류사항 : ', e) # 끊어졌다고 알려줌
 
 finally: # 프로그램이 끝날 때
 
